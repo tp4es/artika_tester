@@ -13,3 +13,8 @@ class StatusResponse(BaseModel):
 class ResultsRequest(BaseModel):
     execution_id: str
     analysis: Dict[str, Any]
+
+class InputConfig(BaseModel):
+    url: str
+    user: str = ""
+    password: str = ""

@@ -1,29 +1,60 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import uuid
+import json
 import asyncio
+import uuid
+from models.schemas import InputConfig
 from services.execution_service import ExecutionService
-from models.schemas import RunTestRequest, StatusResponse, ResultsRequest
 
-app = FastAPI(title="Test Orchestration API", version="1.0.0")
+# Funciones para futuras fases (comentadas)
+# def call_ozap_docker(url, user, encrypted_password):
+#     # TODO: Implementar llamada a docker OZAP
+#     # Usar subprocess o docker SDK para ejecutar el contenedor
+#     # Pasar url, user, encrypted_password
+#     # Retornar el informe del scan
+#     pass
 
-execution_service = ExecutionService()
+# def call_n8n_docker(scan_report):
+#     # TODO: Implementar llamada a docker N8N
+#     # Pasar el scan_report para automatizaciones
+#     # Retornar resultado de automatizaciones
+#     pass
 
-@app.post("/run-test", response_model=dict)
-async def run_test(request: RunTestRequest):
-    execution_id = str(uuid.uuid4())
-    await execution_service.create_execution(execution_id, request.app_url, request.username, request.password)
-    asyncio.create_task(execution_service.run_execution(execution_id))
-    return {"execution_id": execution_id}
+def main():
+    print("Program start")
 
-@app.get("/status/{execution_id}", response_model=StatusResponse)
-async def get_status(execution_id: str):
-    execution = await execution_service.get_execution(execution_id)
-    if not execution:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    return StatusResponse(status=execution["status"], result=execution.get("result"))
+    # Leer el JSON de entrada
+    try:
+        with open('input.json', 'r') as f:
+            data = json.load(f)
+        config = InputConfig(**data)
+    except Exception as e:
+        print(f"Error reading JSON: {e}")
+        return
 
-@app.post("/results")
-async def post_results(request: ResultsRequest):
-    await execution_service.update_results(request.execution_id, request.analysis)
-    return {"message": "Results updated"}
+    # Verificar información
+    has_credentials = bool(config.user and config.password)
+    print(f"Checked json, with/without login info. Credentials: {'present' if has_credentials else 'absent'}")
+
+    # Si hay credenciales, encriptar
+    if has_credentials:
+        execution_service = ExecutionService()
+        encrypted_password = execution_service.security.encrypt_password(config.password)
+        print("Credentials encrypted")
+    else:
+        encrypted_password = ""
+
+    # Simular llamada al scanner (OZAP docker - comentado para fase 1)
+    print("Scan started")
+    # scan_result = call_ozap_docker(config.url, config.user if has_credentials else "", encrypted_password if has_credentials else "")
+    scan_result = "Simulated scan report"  # Placeholder
+    print("Scan finished (success)")
+
+    # Simular llamada a automatizaciones (N8N docker - comentado para fase 1)
+    print("Start automations")
+    # automation_result = call_n8n_docker(scan_result)
+    automation_result = "Simulated automation completed"  # Placeholder
+    print("Finished automa")
+
+    print("Finish program")
+
+if __name__ == "__main__":
+    main()
